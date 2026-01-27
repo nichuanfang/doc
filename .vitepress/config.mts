@@ -55,10 +55,10 @@ export default defineConfig({
         detailedView: true,
       },
     },
-    footer: {
-      message: "基于 MIT 许可发布",
-      copyright: `版权所有 © 2026-${new Date().getFullYear()} chuanfang`,
-    },
+    // footer: {
+    //   message: "基于 MIT 许可发布",
+    //   copyright: `版权所有 © 2026-${new Date().getFullYear()} chuanfang`,
+    // },
   },
   markdown: {
     // 建议 3: 显示行号
