@@ -6,7 +6,7 @@ export default defineConfig({
   description: "Dymdl Site",
   cleanUrls: true,
   lastUpdated: true,
-  appearance: "force-dark",
+  appearance: "dark",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
