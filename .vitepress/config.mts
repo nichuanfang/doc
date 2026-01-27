@@ -2,8 +2,8 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "DocSite",
-  description: "A VitePress Site",
+  title: "GYMDL",
+  description: "Dymdl Site",
   cleanUrls: true,
   lastUpdated: true,
   appearance: "force-dark",
