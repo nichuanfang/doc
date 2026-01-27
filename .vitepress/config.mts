@@ -6,7 +6,7 @@ export default defineConfig({
   description: "A VitePress Site",
   cleanUrls: true,
   lastUpdated: true,
-  appearance: true,
+  appearance: "force-dark",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
