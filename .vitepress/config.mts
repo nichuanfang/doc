@@ -20,7 +20,10 @@ export default defineConfig({
         ]
       }
     ],
-
+    editLink: {
+      pattern: 'https://github.com/nichuanfang/doc/edit/main/:path',
+      text: '在 GitHub 上编辑此页'
+    },
     socialLinks: [
       { icon: 'github', link: 'https://github.com/vuejs/vitepress' }
     ]
