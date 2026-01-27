@@ -6,9 +6,9 @@ hero:
   name: "Gymdl"
   text: "重新定义音乐下载体验"
   tagline: 集成 Telegram Bot 与 CookieCloud 的多平台音乐神器
-  # image:
-  #   src: /logo.png
-  #   alt: Gymdl Logo
+  image:
+    src: /logo.svg
+    alt: Gymdl Logo
   actions:
     - theme: brand
       text: 快速开始
