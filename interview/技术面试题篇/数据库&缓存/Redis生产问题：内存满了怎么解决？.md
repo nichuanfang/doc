@@ -116,8 +116,6 @@ maxmemory-policy noeviction
 
 ![1734431638525-5faf2502-94c8-4f32-9ccc-3ab4c0379d71.png](./img/n3IBxqSvbofTpMzm/1734431638525-5faf2502-94c8-4f32-9ccc-3ab4c0379d71-795035.png)
 
-![](../../Downloads/bd28bbbd-0ed4-46e6-ba94-aba9c730934d.png)
-
 在 Redis 3.0 之前，我们通常使用的是 [Twemproxy](https://github.com/twitter/twemproxy)、[Codis](https://github.com/CodisLabs/codis) 这类开源分片集群方案。Twemproxy、Codis 就相当于是上面的 Proxy 层，负责维护路由规则，实现负载均衡。不过，Twemproxy、Codis 虽然未被淘汰，但官方已经没有继续维护了。
 
 
