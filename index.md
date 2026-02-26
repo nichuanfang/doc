@@ -12,7 +12,7 @@ hero:
   actions:
     - theme: brand
       text: 快速开始
-      link: /guide/getting-started
+      link: /interview
     - theme: alt
       text: GitHub 仓库
       link: https://github.com/nichuanfang/doc
