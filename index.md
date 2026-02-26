@@ -3,52 +3,37 @@
 layout: home
 
 hero:
-  name: "Gymdl"
-  text: "重新定义音乐下载体验"
-  tagline: 集成 Telegram Bot 与 CookieCloud 的多平台音乐神器
+  name: "MyDoc"
+#  text: ""
+  tagline: 个人文档平台
   image:
     src: /logo.svg
-    alt: Gymdl Logo
+    alt: MyDoc Logo
   actions:
     - theme: brand
       text: 快速开始
       link: /guide/getting-started
     - theme: alt
-      text: 在 Telegram 使用
-      link: https://t.me/your_bot_link
-    - theme: alt
       text: GitHub 仓库
-      link: https://github.com/your-repo
+      link: https://github.com/nichuanfang/doc
 
 features:
-  - icon: 🎵
-    title: 全平台覆盖
-    details: 完美支持网易云音乐、QQ 音乐、YouTube Music、Bilibili 等，你想听的都在这里。
-    link: /
-    linkText: 平台
-  - icon: 🤖
-    title: Telegram 交互
-    details: 无需打开网页，发送链接给 Bot 即可全自动下载并上传至你的私人频道。
-    link: /
-    linkText: 开发
-  - icon: ☁️
-    title: 自动同步登录
-    details: 集成 CookieCloud，自动同步会员状态，告别手动更新 Cookie 的繁琐操作。
-    link: /
-    linkText: 同步教程
-  - icon: 🚀
-    title: 高品质保证
-    details: 优先匹配无损音质（FLAC/APE），智能补全 ID3 标签与专辑封面。
-    link: /
-    linkText: 查看
-  - icon: 🛠️
-    title: 灵活部署
-    details: 支持 Docker 一键部署，资源占用极低，适合群晖、轻量服务器等多种环境。
-    link: /
-    linkText: 部署教程
-  - icon: 🔒
-    title: 隐私安全
-    details: 核心代码开源，数据本地处理，无需担心账号泄露风险。
-    link: /
-    linkText: 运维
+  - icon: 📝
+    title: 面试/算法复盘
+    details: 归纳 LeetCode 经典题解与大厂面试高频考点，构建完整的后端知识脑图。
+  - icon: 🛡️
+    title: 生产级项目实战
+    details: 从 0 到 1 构建高可用系统，涵盖多级缓存、分布式事务（Seata）及限流熔断解决方案。
+  - icon: 🐳
+    title: 云原生与运维
+    details: 玩转 Docker 容器化、K8s 编排架构，以及基于 Jenkins/GitHub Actions 的 CI/CD 自动化流水线。
+  - icon: 🧩
+    title: 开发规约与治理
+    details: 落地阿里 Java 开发手册，集成 Checkstyle/SonarQube 静态扫描，追求代码极致整洁。
+  - icon: 🌐
+    title: 全栈技术触角
+    details: 延伸至 Vue/React 前端工程化，探索 Python 自动化脚本及 Go 微服务，打破技术边界。
+  - icon: 📈
+    title: 业务深度思考
+    details: 沉淀电商、金融或中台业务模型设计，探讨领域驱动设计（DDD）在复杂业务中的落地。
 ---

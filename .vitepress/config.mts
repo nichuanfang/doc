@@ -1,9 +1,10 @@
 import { defineConfig } from 'vitepress'
+import { generateSidebar } from 'vitepress-sidebar';
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "GYMDL",
-  description: "Dymdl Site",
+  title: "MyDOC",
+  description: "Doc Site",
   cleanUrls: true,
   lastUpdated: true,
   appearance: "dark",
@@ -11,17 +12,21 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: "Home", link: "/" },
-      { text: "Examples", link: "/markdown-examples" },
+      { text: "Interview", link: "/interview" },
     ],
-    sidebar: [
+    sidebar: generateSidebar([
       {
-        text: "Examples",
-        items: [
-          { text: "Markdown Examples", link: "/markdown-examples" },
-          { text: "Runtime API Examples", link: "/api-examples" },
-        ],
+        /* 这里的配置针对你的文档根目录 */
+        documentRootPath: 'interview', // 你的 markdown 所在目录
+        // scanStartPath: '',   // (可选) 如果你想针对 guide 文件夹生成
+        resolvePath: '/interview/',   // 基础路径前缀
+        useTitleFromFileHeading: true, // 使用 md 文件里的第一个一级标题作为菜单名
+        collapsed: true,          // 默认是否折叠
+        hyphenToSpace: true,      // 将连字符转换为空格
+        undescendingOrder: false, // 是否降序排列
       },
-    ],
+      // 如果有其他目录，可以继续添加对象
+    ]),
     editLink: {
       pattern: "https://github.com/nichuanfang/doc/edit/main/:path",
       text: "在 GitHub 上编辑此页",
