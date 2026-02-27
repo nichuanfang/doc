@@ -5,7 +5,7 @@ import { generateSidebar } from 'vitepress-sidebar';
 export default defineConfig({
   title: "MyDOC",
   description: "Doc Site",
-  cleanUrls: true,
+  cleanUrls: false,
   lastUpdated: true,
   appearance: "dark",
   themeConfig: {
