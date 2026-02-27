@@ -27,10 +27,10 @@ export default defineConfig({
       },
       // 如果有其他目录，可以继续添加对象
     ]),
-    editLink: {
-      pattern: "https://github.com/nichuanfang/doc/edit/main/:path",
-      text: "在 GitHub 上编辑此页",
-    },
+    // editLink: {
+    //   pattern: "https://github.com/nichuanfang/doc/edit/main/:path",
+    //   text: "在 GitHub 上编辑此页",
+    // },
     // 自定义最后更新时间的文本显示
     lastUpdated: {
       text: "最后更新于",
