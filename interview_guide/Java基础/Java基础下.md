@@ -65,8 +65,6 @@ intern 函数的作用是将对应的符号常量进入特殊处理，在 JDK1.6
 
 **JDK1.6**
 
-![JDK1.6代码图](https://user-gold-cdn.xitu.io/2018/12/16/167b663c264e6af2?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
-
 `String s = new String("2");`创建了两个对象，一个在堆中的 StringObject 对象，一个是在常量池中的“2”对象。
 `s.intern();`在常量池中寻找与 s 变量内容相同的对象，发现已经存在内容相同对象“2”，返回对象 2 的地址。
 `String s2 = "2";`使用字面量创建，在常量池寻找是否有相同内容的对象，发现有，返回对象"2"的地址。
@@ -78,8 +76,6 @@ intern 函数的作用是将对应的符号常量进入特殊处理，在 JDK1.6
 `System.out.println(s3 == s4);`从上面可以分析出，s3 变量和 s4 变量地址指向的是不同的对象，所以返回 false
 
 **JDK1.7**
-
-![JDK1.7代码图](https://user-gold-cdn.xitu.io/2018/12/16/167b663c2617a194?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
 
 `String s = new String("2");`创建了两个对象，一个在堆中的 StringObject 对象，一个是在堆中的“2”对象，并在常量池中保存“2”对象的引用地址。
 `s.intern();`在常量池中寻找与 s 变量内容相同的对象，发现已经存在内容相同对象“2”，返回对象“2”的引用地址。
