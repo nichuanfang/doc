@@ -9,11 +9,11 @@
 /* 隐藏主滚动条 */
 
 /* Chrome/Edge/Safari */
-/* ::-webkit-scrollbar {
+::-webkit-scrollbar {
     display: none;
-} */
+}
 
 /* Firefox */
-/* html {
+html {
     scrollbar-width: none;
-} */
+}
