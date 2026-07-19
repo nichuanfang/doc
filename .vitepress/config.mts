@@ -6,7 +6,7 @@ export default defineConfig({
   title: "MyDOC",
   description: "Doc Site",
   lang: "zh-CN",
-  cleanUrls: false,
+  cleanUrls: true,
   lastUpdated: true,
   appearance: "force-auto",
   themeConfig: {
