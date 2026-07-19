@@ -6,7 +6,7 @@ export default defineConfig({
   title: "MyDOC",
   description: "Doc Site",
   lang: "zh-CN",
-  cleanUrls: true,
+  cleanUrls: false,
   lastUpdated: true,
   appearance: "force-auto",
   themeConfig: {
@@ -17,7 +17,7 @@ export default defineConfig({
       { text: "面试指北", link: "/interview_handbook" },
     ],
     outline: {
-      level: [2, 3], // 推荐：只显示二级和三级标题（避免大纲过长）
+      level: 2, 
       label: "本页目录", // 中文化标题
     },
     sidebar: generateSidebar([
