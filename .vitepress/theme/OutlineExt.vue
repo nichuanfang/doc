@@ -42,8 +42,11 @@ let routeDeferredTimer: ReturnType<typeof setTimeout> | null = null
 let loadCleanup: (() => void) | null = null
 
 const POLL_INTERVAL = 60
+const POLL_MAX_TRIES = 100 // 100 * 60ms ≈ 6s
+let pollTries = 0
 
 const router = useRouter()
+const prevOnAfterRouteChange = router.onAfterRouteChange
 
 // ============================================================
 // 1) 大纲滚动跟随
@@ -162,19 +165,30 @@ function waitForContainer() {
   // 防止重复初始化
   if (pollTimer) return
 
+  pollTries = 0
+
   pollTimer = setInterval(() => {
     const container = document.querySelector('.aside-container')
-    if (!container) return
+    if (!container) {
+      // 修复点 1：超过最大重试次数后放弃轮询，避免无 aside 页面无限占用定时器
+      pollTries++
+      if (pollTries >= POLL_MAX_TRIES) {
+        clearInterval(pollTimer!)
+        pollTimer = null
+      }
+      return
+    }
 
     clearInterval(pollTimer!)
     pollTimer = null
 
     // --- 绑定事件 ---
     window.addEventListener('scroll', onScroll, { passive: true })
-    document.addEventListener('click', onClick, { passive: true })
+    document.addEventListener('click', onClick)
 
     // --- 路由切换时重置状态 ---
-    router.onAfterRouteChange = () => {
+    router.onAfterRouteChange = (to: string) => {
+      prevOnAfterRouteChange?.(to)
       resetAutoScroll()
       // 路由切换后延迟执行，等新页面 DOM 渲染完成
       if (routeDeferredTimer) clearTimeout(routeDeferredTimer)
@@ -207,8 +221,7 @@ onUnmounted(() => {
   window.removeEventListener('scroll', onScroll)
   document.removeEventListener('click', onClick)
 
-  // 路由钩子
-  router.onAfterRouteChange = undefined
+  router.onAfterRouteChange = prevOnAfterRouteChange
 
   // 定时器
   if (waitTimer) clearTimeout(waitTimer)
