@@ -1,164 +1,180 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-提取指定 Markdown 文件中的远程图片链接下载到该 md 文件
-同级目录的 img 文件夹下，并把文中的链接替换为本地相对路径。
+format.py
+
+用途：
+    清洗 + 格式化指定文件夹内的所有 Markdown（.md）文件。
 
 用法：
-    python3 format.py 文件1.md 文件2.md ...
+    python format.py <目标文件夹名>
+
+    例如同目录下有 docs/ 文件夹：
+        python format.py docs
+
+    会递归处理 docs/ 下所有 .md 文件（原地修改，直接覆盖原文件）。
 """
 
+import argparse
 import os
 import re
 import sys
-import urllib.request
-import ssl
-from urllib.parse import urlparse, urlunparse, quote, unquote
 
-# 1. Markdown 图片语法: ![alt](http://... 或 https://...)
-MD_IMG_PATTERN = re.compile(r'!\[([^\]]*)\]\((https?://[^\)\s]+)\)')
+# ---------- 正则定义 ----------
 
-# 2. HTML <img ... src="http(s)://..." ...> 标签，只捕获 src 属性值
-HTML_IMG_PATTERN = re.compile(
-    r'(<img\b[^>]*?\bsrc\s*=\s*["\'])(https?://[^"\']+)(["\'][^>]*>)',
-    re.IGNORECASE
-)
+# ATX 标题 + 跳转链接： "### [文字](#锚点)"
+ATX_LINK_HEADING_RE = re.compile(r"^(#{1,6})\s*\[(.+?)\]\(#[^)]*\)\s*$")
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    )
-}
+# 缺失空格的 ATX 标题： "###文字"（后面紧跟非 # 非空白字符）
+ATX_MISSING_SPACE_RE = re.compile(r"^(#{1,6})([^#\s].*)$")
 
-# 部分图床对 https 证书校验比较严格，这里放宽以避免下载失败
-SSL_CONTEXT = ssl.create_default_context()
-SSL_CONTEXT.check_hostname = False
-SSL_CONTEXT.verify_mode = ssl.CERT_NONE
+# Setext 标题的第一行： "[文字](#锚点)"（整行只有这个链接）
+SETEXT_LINK_LINE_RE = re.compile(r"^\[(.+?)\]\(#[^)]*\)\s*$")
+
+# Setext 下划线：只由 '-' 组成的一行（至少 1 个），或只由 '=' 组成的一行
+SETEXT_DASH_RE = re.compile(r"^-+\s*$")
+SETEXT_EQUAL_RE = re.compile(r"^=+\s*$")
+
+# 代码围栏（``` 或 ~~~ 开头，允许前导空格与语言标注）
+FENCE_RE = re.compile(r"^(\s*)(```|~~~)")
 
 
-def normalize_url(url: str) -> str:
-    """处理 URL 中的非 ASCII 字符（中文等），进行 percent-encoding"""
-    parsed = urlparse(url)
-    path = quote(parsed.path, safe='/')
-    query = quote(parsed.query, safe='=&?')
-    
-    normalized = urlunparse((
-        parsed.scheme,
-        parsed.netloc,
-        path,
-        parsed.params,
-        query,
-        parsed.fragment
-    ))
-    return normalized
+def clean_markdown_text(text: str):
+    """
+    对 Markdown 文本做清洗，返回 (新文本, 是否发生变化)
+    """
+    lines = text.split("\n")
+    out_lines = []
+    changed = False
+
+    in_fence = False
+    fence_marker = None
+
+    i = 0
+    n = len(lines)
+    while i < n:
+        line = lines[i]
+
+        # ---- 代码围栏状态跟踪：围栏内的内容原样保留，不做任何处理 ----
+        fence_match = FENCE_RE.match(line)
+        if fence_match:
+            marker = fence_match.group(2)
+            if not in_fence:
+                in_fence = True
+                fence_marker = marker
+            elif marker == fence_marker:
+                in_fence = False
+                fence_marker = None
+            out_lines.append(line)
+            i += 1
+            continue
+
+        if in_fence:
+            out_lines.append(line)
+            i += 1
+            continue
+
+        # ---- 规则 2：Setext 风格链接标题（两行) ----
+        # 必须是 "[文字](#锚点)" 紧跟着下一行是纯 '-' 或纯 '=' 行
+        if i + 1 < n:
+            setext_match = SETEXT_LINK_LINE_RE.match(line)
+            if setext_match:
+                next_line = lines[i + 1]
+                if SETEXT_DASH_RE.match(next_line):
+                    out_lines.append("## " + setext_match.group(1))
+                    changed = True
+                    i += 2
+                    continue
+                if SETEXT_EQUAL_RE.match(next_line):
+                    out_lines.append("# " + setext_match.group(1))
+                    changed = True
+                    i += 2
+                    continue
+
+        # ---- 规则 1：ATX 风格链接标题（单行） ----
+        atx_match = ATX_LINK_HEADING_RE.match(line)
+        if atx_match:
+            hashes = atx_match.group(1)
+            title = atx_match.group(2)
+            new_line = f"{hashes} {title}"
+            if new_line != line:
+                changed = True
+            out_lines.append(new_line)
+            i += 1
+            continue
+
+        # ---- 规则 3：补齐 # 与文字之间缺失的空格（幂等） ----
+        missing_space_match = ATX_MISSING_SPACE_RE.match(line)
+        if missing_space_match:
+            hashes = missing_space_match.group(1)
+            rest = missing_space_match.group(2)
+            new_line = f"{hashes} {rest}"
+            out_lines.append(new_line)
+            changed = True
+            i += 1
+            continue
+
+        # ---- 其他行原样保留 ----
+        out_lines.append(line)
+        i += 1
+
+    new_text = "\n".join(out_lines)
+    return new_text, changed
 
 
-def guess_filename(url: str) -> str:
-    """从 URL 中提取文件名（直接使用原文件名，覆盖同名文件）"""
-    path = urlparse(url).path
-    name = unquote(os.path.basename(path))
-    if not name or name == '/':
-        name = "image.png"
-    elif "." not in name:
-        name += ".png"  # 没有扩展名时兜底
-    return name
+def find_markdown_files(folder: str):
+    """递归查找目标文件夹下所有 .md 文件"""
+    md_files = []
+    for root, _dirs, files in os.walk(folder):
+        for fname in files:
+            if fname.lower().endswith(".md"):
+                md_files.append(os.path.join(root, fname))
+    return sorted(md_files)
 
 
-def download(url: str, dest_path: str) -> bool:
-    try:
-        normalized_url = normalize_url(url)
-        req = urllib.request.Request(normalized_url, headers=HEADERS)
-        with urllib.request.urlopen(req, context=SSL_CONTEXT, timeout=30) as resp:
-            data = resp.read()
-        with open(dest_path, "wb") as f:
-            f.write(data)
-        return True
-    except Exception as e:
-        print(f"  ✗ 下载失败: {url}\n    错误: {e}")
-        return False
+def process_folder(folder: str, dry_run: bool = False):
+    if not os.path.isdir(folder):
+        print(f"错误：文件夹不存在 -> {folder}", file=sys.stderr)
+        sys.exit(1)
 
-
-def collect_urls(content: str):
-    """收集文中所有出现的远程图片 URL（markdown + html 两种写法）。"""
-    urls = []
-    for m in MD_IMG_PATTERN.finditer(content):
-        urls.append(m.group(2))
-    for m in HTML_IMG_PATTERN.finditer(content):
-        urls.append(m.group(2))
-    # 去重但保持顺序
-    seen = set()
-    ordered = []
-    for u in urls:
-        if u not in seen:
-            seen.add(u)
-            ordered.append(u)
-    return ordered
-
-
-def process_md_file(md_path: str):
-    if not os.path.isfile(md_path):
-        print(f"文件不存在: {md_path}")
+    md_files = find_markdown_files(folder)
+    if not md_files:
+        print(f"未在 {folder} 下找到任何 .md 文件。")
         return
 
-    md_dir = os.path.dirname(os.path.abspath(md_path))
-    img_dir = os.path.join(md_dir, "img")
-    os.makedirs(img_dir, exist_ok=True)
+    changed_count = 0
+    for path in md_files:
+        with open(path, "r", encoding="utf-8") as f:
+            original_text = f.read()
 
-    with open(md_path, "r", encoding="utf-8") as f:
-        content = f.read()
+        new_text, changed = clean_markdown_text(original_text)
 
-    urls = collect_urls(content)
-    if not urls:
-        print(f"[{os.path.basename(md_path)}] 未发现需要处理的远程图片链接。")
-        return
-
-    replacements = {}  # url -> 本地相对路径 (None 表示下载失败)
-    print(f"[{os.path.basename(md_path)}] 发现 {len(urls)} 个远程图片链接：")
-
-    for url in urls:
-        filename = guess_filename(url)
-        dest_path = os.path.join(img_dir, filename)
-        
-        print(f"  下载: {url} → img/{filename}")
-        if download(url, dest_path):
-            replacements[url] = f"./img/{filename}"
-            print(f"  ✓ 已保存为: img/{filename}")
+        if changed:
+            changed_count += 1
+            print(f"[已修改] {path}")
+            if not dry_run:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(new_text)
         else:
-            replacements[url] = None  # 下载失败则不替换
+            print(f"[无需修改] {path}")
 
-    def md_replace(match):
-        alt, url = match.group(1), match.group(2)
-        new_path = replacements.get(url)
-        if new_path is None:
-            return match.group(0)
-        return f"![{alt}]({new_path})"
-
-    def html_replace(match):
-        prefix, url, suffix = match.group(1), match.group(2), match.group(3)
-        new_path = replacements.get(url)
-        if new_path is None:
-            return match.group(0)
-        return f"{prefix}{new_path}{suffix}"
-
-    new_content = MD_IMG_PATTERN.sub(md_replace, content)
-    new_content = HTML_IMG_PATTERN.sub(html_replace, new_content)
-
-    if new_content != content:
-        with open(md_path, "w", encoding="utf-8") as f:
-            f.write(new_content)
-        print(f"[{os.path.basename(md_path)}] 已更新文件中的图片链接。\n")
-    else:
-        print(f"[{os.path.basename(md_path)}] 没有链接被替换（可能全部下载失败）。\n")
+    print(f"\n处理完成：共 {len(md_files)} 个文件，{changed_count} 个被修改。")
+    if dry_run:
+        print("（dry-run 模式，未实际写入文件）")
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("用法: python3 fetch_md_images.py 文件1.md [文件2.md ...]")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="清洗 + 格式化指定文件夹内的 Markdown 文件")
+    parser.add_argument("folder", help="目标文件夹路径（相对于脚本所在目录，或绝对路径）")
+    parser.add_argument("--dry-run", action="store_true", help="只预览会修改哪些文件，不实际写入")
+    args = parser.parse_args()
 
-    for path in sys.argv[1:]:
-        process_md_file(path)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    folder_path = args.folder
+    if not os.path.isabs(folder_path):
+        folder_path = os.path.join(script_dir, folder_path)
+
+    process_folder(folder_path, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":

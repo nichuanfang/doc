@@ -13,7 +13,10 @@ function throttle(fn: () => void, delay: number) {
     const now = Date.now()
     const remaining = delay - (now - last)
     if (remaining <= 0) {
-      if (timer) { clearTimeout(timer); timer = null }
+      if (timer) {
+        clearTimeout(timer)
+        timer = null
+      }
       last = now
       fn()
     } else if (!timer) {
@@ -34,7 +37,10 @@ let pageScrollYAtClick = 0
 let pageStable = false
 let waitTimer: ReturnType<typeof setTimeout> | null = null
 let pollTimer: ReturnType<typeof setInterval> | null = null
-let observerReady = false
+let deferredTimer: ReturnType<typeof setTimeout> | null = null
+let routeDeferredTimer: ReturnType<typeof setTimeout> | null = null
+let loadCleanup: (() => void) | null = null
+
 const POLL_INTERVAL = 60
 
 const router = useRouter()
@@ -57,7 +63,9 @@ function doScroll() {
   const ar = activeLink.getBoundingClientRect()
 
   if (ar.top < cr.top || ar.bottom > cr.bottom) {
-    const relativeTop = activeLink.offsetTop - container.offsetTop
+    // 使用 getBoundingClientRect + scrollTop 比 offsetTop 更稳健，
+    // 不依赖 offsetParent 链条
+    const relativeTop = ar.top - cr.top + container.scrollTop
     const target = relativeTop - cr.height / 2 + ar.height / 2
     container.scrollTo({
       top: Math.max(0, target),
@@ -75,9 +83,10 @@ function syncHash() {
   const activeLink = document.querySelector<HTMLAnchorElement>(
     '.VPDocAsideOutline .outline-link.active'
   )
+  // 没有激活标题时不动 hash，避免覆盖用户手动输入的 hash
+  if (!activeLink) return
 
-  // 页面顶部（无标题）→ 清除 hash；有标题 → 更新 hash
-  const newHash = activeLink?.getAttribute('href')?.replace(/^.*#/, '#') || ''
+  const newHash = activeLink.getAttribute('href')?.replace(/^.*#/, '#') || ''
 
   if (window.location.hash !== newHash) {
     history.replaceState(
@@ -150,28 +159,39 @@ function onScroll() {
 // 等待容器 + 绑定事件
 // ============================================================
 function waitForContainer() {
-  if (observerReady) return
+  // 防止重复初始化
+  if (pollTimer) return
 
   pollTimer = setInterval(() => {
     const container = document.querySelector('.aside-container')
     if (!container) return
 
-    if (pollTimer) {
-      clearInterval(pollTimer)
-      pollTimer = null
-    }
-    observerReady = true
+    clearInterval(pollTimer!)
+    pollTimer = null
 
+    // --- 绑定事件 ---
     window.addEventListener('scroll', onScroll, { passive: true })
     document.addEventListener('click', onClick, { passive: true })
 
-    // 路由切换时重置状态
-    router.onAfterRouteChange?.(() => {
+    // --- 路由切换时重置状态 ---
+    router.onAfterRouteChange = () => {
       resetAutoScroll()
-      setTimeout(onScrollAction, 200)
-    })
+      // 路由切换后延迟执行，等新页面 DOM 渲染完成
+      if (routeDeferredTimer) clearTimeout(routeDeferredTimer)
+      routeDeferredTimer = setTimeout(onScrollAction, 200)
+    }
 
-    setTimeout(onScrollAction, 300)
+    // --- load 事件：页面完全加载后再校准一次 ---
+    const onLoad = () => {
+      if (deferredTimer) clearTimeout(deferredTimer)
+      deferredTimer = setTimeout(onScrollAction, 500)
+    }
+    window.addEventListener('load', onLoad, { once: true })
+    loadCleanup = () => window.removeEventListener('load', onLoad)
+
+    // --- 初始执行 ---
+    if (deferredTimer) clearTimeout(deferredTimer)
+    deferredTimer = setTimeout(onScrollAction, 300)
   }, POLL_INTERVAL)
 }
 
@@ -180,14 +200,31 @@ function waitForContainer() {
 // ============================================================
 onMounted(() => {
   waitForContainer()
-  window.addEventListener('load', () => setTimeout(onScrollAction, 500), { once: true })
 })
 
 onUnmounted(() => {
+  // 事件监听
   window.removeEventListener('scroll', onScroll)
   document.removeEventListener('click', onClick)
+
+  // 路由钩子
+  router.onAfterRouteChange = undefined
+
+  // 定时器
   if (waitTimer) clearTimeout(waitTimer)
   if (pollTimer) clearInterval(pollTimer)
+  if (deferredTimer) clearTimeout(deferredTimer)
+  if (routeDeferredTimer) clearTimeout(routeDeferredTimer)
+
+  // load 事件
+  loadCleanup?.()
+
+  // 重置为 null
+  waitTimer = null
+  pollTimer = null
+  deferredTimer = null
+  routeDeferredTimer = null
+  loadCleanup = null
 })
 </script>
 

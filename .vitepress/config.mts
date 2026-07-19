@@ -17,7 +17,7 @@ export default defineConfig({
       { text: "面试指北", link: "/interview_handbook" },
     ],
     outline: {
-      level: 2,
+      level: [2, 3],
       label: "本页目录", // 中文化标题
     },
     sidebar: generateSidebar([
@@ -100,5 +100,9 @@ export default defineConfig({
 
     // 建议 5: 启用数学公式支持 (需要安装 markdown-it-mathjax3)
     math: true,
+    languageAlias: {
+      reasonml: "ocaml",
+      reason: "ocaml", // 如果你也用了 reason 简写
+    },
   },
 });
