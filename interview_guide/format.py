@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-提取指定 Markdown 文件中的远程图片链接（http/https），下载到该 md 文件
+提取指定 Markdown 文件中的远程图片链接下载到该 md 文件
 同级目录的 img 文件夹下，并把文中的链接替换为本地相对路径。
 
 用法：
@@ -12,7 +12,7 @@ import re
 import sys
 import urllib.request
 import ssl
-from urllib.parse import urlparse, unquote
+from urllib.parse import urlparse, urlunparse, quote, unquote
 
 # 1. Markdown 图片语法: ![alt](http://... 或 https://...)
 MD_IMG_PATTERN = re.compile(r'!\[([^\]]*)\]\((https?://[^\)\s]+)\)')
@@ -37,28 +37,38 @@ SSL_CONTEXT.check_hostname = False
 SSL_CONTEXT.verify_mode = ssl.CERT_NONE
 
 
-def guess_filename(url: str, used_names: set) -> str:
-    """从 URL 中猜测一个文件名，避免重名覆盖。"""
+def normalize_url(url: str) -> str:
+    """处理 URL 中的非 ASCII 字符（中文等），进行 percent-encoding"""
+    parsed = urlparse(url)
+    path = quote(parsed.path, safe='/')
+    query = quote(parsed.query, safe='=&?')
+    
+    normalized = urlunparse((
+        parsed.scheme,
+        parsed.netloc,
+        path,
+        parsed.params,
+        query,
+        parsed.fragment
+    ))
+    return normalized
+
+
+def guess_filename(url: str) -> str:
+    """从 URL 中提取文件名（直接使用原文件名，覆盖同名文件）"""
     path = urlparse(url).path
     name = unquote(os.path.basename(path))
-    if not name:
-        name = "image"
-    if "." not in name:
-        name += ".png"  # 没有扩展名时兜底给一个
-
-    base, ext = os.path.splitext(name)
-    candidate = name
-    i = 1
-    while candidate in used_names:
-        candidate = f"{base}_{i}{ext}"
-        i += 1
-    used_names.add(candidate)
-    return candidate
+    if not name or name == '/':
+        name = "image.png"
+    elif "." not in name:
+        name += ".png"  # 没有扩展名时兜底
+    return name
 
 
 def download(url: str, dest_path: str) -> bool:
     try:
-        req = urllib.request.Request(url, headers=HEADERS)
+        normalized_url = normalize_url(url)
+        req = urllib.request.Request(normalized_url, headers=HEADERS)
         with urllib.request.urlopen(req, context=SSL_CONTEXT, timeout=30) as resp:
             data = resp.read()
         with open(dest_path, "wb") as f:
@@ -103,17 +113,17 @@ def process_md_file(md_path: str):
         print(f"[{os.path.basename(md_path)}] 未发现需要处理的远程图片链接。")
         return
 
-    used_names = set(os.listdir(img_dir))
     replacements = {}  # url -> 本地相对路径 (None 表示下载失败)
     print(f"[{os.path.basename(md_path)}] 发现 {len(urls)} 个远程图片链接：")
 
     for url in urls:
-        filename = guess_filename(url, used_names)
+        filename = guess_filename(url)
         dest_path = os.path.join(img_dir, filename)
-        print(f"  下载: {url}")
+        
+        print(f"  下载: {url} → img/{filename}")
         if download(url, dest_path):
             replacements[url] = f"./img/{filename}"
-            print(f"  ✓ 已保存为: img/{filename}")
+            print(f"  ✓ 已保存为: img/{filename}（覆盖模式）")
         else:
             replacements[url] = None  # 下载失败则不替换
 
