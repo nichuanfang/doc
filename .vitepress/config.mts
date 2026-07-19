@@ -17,7 +17,7 @@ export default defineConfig({
       { text: "面试指北", link: "/interview_handbook" },
     ],
     outline: {
-      level: 2, 
+      level: 2,
       label: "本页目录", // 中文化标题
     },
     sidebar: generateSidebar([
@@ -29,9 +29,9 @@ export default defineConfig({
         useTitleFromFileHeading: true, // 使用 md 文件里的第一个一级标题作为菜单名
         collapsed: true, // 默认是否折叠
         hyphenToSpace: true, // 将连字符转换为空格
-        sortMenusOrderByDescending: false, // 是否降序排列
-        useTitleFromFrontmatter: true,
-        includeFolderIndexFile: true,
+        sortMenusOrderNumericallyFromLink: true,
+        removePrefixAfterOrdering: true,
+        prefixSeparator: ".",
       },
       {
         /* 这里的配置针对你的文档根目录 */
@@ -41,9 +41,9 @@ export default defineConfig({
         useTitleFromFileHeading: true, // 使用 md 文件里的第一个一级标题作为菜单名
         collapsed: true, // 默认是否折叠
         hyphenToSpace: true, // 将连字符转换为空格
-        sortMenusOrderByDescending: false, // 是否降序排列
-        useTitleFromFrontmatter: true,
-        includeFolderIndexFile: true,
+        sortMenusOrderNumericallyFromLink: true,
+        removePrefixAfterOrdering: true,
+        prefixSeparator: ".",
       },
       // 如果有其他目录，可以继续添加对象
     ]),

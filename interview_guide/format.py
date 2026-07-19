@@ -123,7 +123,7 @@ def process_md_file(md_path: str):
         print(f"  下载: {url} → img/{filename}")
         if download(url, dest_path):
             replacements[url] = f"./img/{filename}"
-            print(f"  ✓ 已保存为: img/{filename}（覆盖模式）")
+            print(f"  ✓ 已保存为: img/{filename}")
         else:
             replacements[url] = None  # 下载失败则不替换
 
