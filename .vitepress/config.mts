@@ -12,18 +12,29 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: "Home", link: "/" },
-      { text: "Interview", link: "/interview" },
+      { text: "面试指南", link: "/interview_guide" },
+      { text: "面试指北", link: "/interview_handbook" },
     ],
     sidebar: generateSidebar([
       {
         /* 这里的配置针对你的文档根目录 */
-        documentRootPath: 'interview', // 你的 markdown 所在目录
+        documentRootPath: "interview_guide", // 你的 markdown 所在目录
         // scanStartPath: '',   // (可选) 如果你想针对 guide 文件夹生成
-        resolvePath: '/interview/',   // 基础路径前缀
+        resolvePath: "/interview_guide/", // 基础路径前缀
         useTitleFromFileHeading: true, // 使用 md 文件里的第一个一级标题作为菜单名
-        collapsed: true,          // 默认是否折叠
-        hyphenToSpace: true,      // 将连字符转换为空格
-        undescendingOrder: false, // 是否降序排列
+        collapsed: true, // 默认是否折叠
+        hyphenToSpace: true, // 将连字符转换为空格
+        sortMenusOrderByDescending: false, // 是否降序排列
+      },
+      {
+        /* 这里的配置针对你的文档根目录 */
+        documentRootPath: "interview_handbook", // 你的 markdown 所在目录
+        // scanStartPath: '',   // (可选) 如果你想针对 guide 文件夹生成
+        resolvePath: "/interview_handbook/", // 基础路径前缀
+        useTitleFromFileHeading: true, // 使用 md 文件里的第一个一级标题作为菜单名
+        collapsed: true, // 默认是否折叠
+        hyphenToSpace: true, // 将连字符转换为空格
+        sortMenusOrderByDescending: false, // 是否降序排列
       },
       // 如果有其他目录，可以继续添加对象
     ]),
