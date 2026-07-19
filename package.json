@@ -1,6 +1,6 @@
 {
   "devDependencies": {
-    "vitepress": "2.0.0-alpha.15",
+    "vitepress": "2.0.0-alpha.18",
     "vue": "^3.5.27"
   },
   "scripts": {
@@ -9,7 +9,7 @@
     "docs:preview": "vitepress preview"
   },
   "dependencies": {
-    "markdown-it-mathjax3": "^5.2.0",
-    "vitepress-sidebar": "^1.33.1"
+    "markdown-it-mathjax3": "^4.3.2",
+    "vitepress-sidebar": "^1.36.1"
   }
 }

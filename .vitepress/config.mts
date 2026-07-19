@@ -5,9 +5,10 @@ import { generateSidebar } from 'vitepress-sidebar';
 export default defineConfig({
   title: "MyDOC",
   description: "Doc Site",
-  cleanUrls: false,
+  lang: "zh-CN",
+  cleanUrls: true,
   lastUpdated: true,
-  appearance: "dark",
+  appearance: "force-auto",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
@@ -15,6 +16,10 @@ export default defineConfig({
       { text: "面试指南", link: "/interview_guide" },
       { text: "面试指北", link: "/interview_handbook" },
     ],
+    outline: {
+      level: [2, 3], // 推荐：只显示二级和三级标题（避免大纲过长）
+      label: "本页目录", // 中文化标题
+    },
     sidebar: generateSidebar([
       {
         /* 这里的配置针对你的文档根目录 */
@@ -25,6 +30,8 @@ export default defineConfig({
         collapsed: true, // 默认是否折叠
         hyphenToSpace: true, // 将连字符转换为空格
         sortMenusOrderByDescending: false, // 是否降序排列
+        useTitleFromFrontmatter: true,
+        includeFolderIndexFile: true,
       },
       {
         /* 这里的配置针对你的文档根目录 */
@@ -35,6 +42,8 @@ export default defineConfig({
         collapsed: true, // 默认是否折叠
         hyphenToSpace: true, // 将连字符转换为空格
         sortMenusOrderByDescending: false, // 是否降序排列
+        useTitleFromFrontmatter: true,
+        includeFolderIndexFile: true,
       },
       // 如果有其他目录，可以继续添加对象
     ]),
@@ -62,7 +71,11 @@ export default defineConfig({
               button: { buttonText: "搜索文档", buttonAriaLabel: "搜索文档" },
               modal: {
                 noResultsText: "无法找到相关结果",
-                footer: { selectText: "选择", navigateText: "切换" },
+                footer: {
+                  selectText: "选择",
+                  navigateText: "切换",
+                  closeText: "关闭",
+                },
               },
             },
           },
