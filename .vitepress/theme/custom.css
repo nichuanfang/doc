@@ -1,0 +1,4 @@
+/* .vitepress/theme/custom.css */
+:root {
+    --vp-font-family-base: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
