@@ -32,17 +32,5 @@
         }
       ]
     }
-  ],
-  "redirects": [
-    {
-      "source": "/interview_guide",
-      "destination": "/interview_guide/",
-      "permanent": true
-    },
-    {
-      "source": "/interview_handbook",
-      "destination": "/interview_handbook/",
-      "permanent": true
-    }
   ]
 }
