@@ -18,7 +18,7 @@ export default defineConfig({
     ],
     outline: {
       level: 2,
-      label: "本页目录", // 中文化标题
+      label: "本页目录",
     },
     sidebar: generateSidebar([
       {
@@ -47,7 +47,6 @@ export default defineConfig({
       },
       // 如果有其他目录，可以继续添加对象
     ]),
-    returnToTopLabel: "返回顶部",
     // editLink: {
     //   pattern: "https://github.com/nichuanfang/doc/edit/main/:path",
     //   text: "在 GitHub 上编辑此页",
