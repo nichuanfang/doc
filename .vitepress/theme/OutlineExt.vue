@@ -72,11 +72,14 @@ watch(routeChangeSignal, () => {
     setTimeout(checkAndScroll, 60)
 })
 
+// 监听
 function setupObserver() {
     if (observer) observer.disconnect()
 
     observer = new MutationObserver(checkAndScroll)
-    observer.observe(document.body, {
+
+    const aside = document.querySelector('.VPDocAside') || document.body
+    observer.observe(aside, {
         attributes: true,
         subtree: true,
         attributeFilter: ['class'],
