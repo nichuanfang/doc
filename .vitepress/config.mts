@@ -17,7 +17,7 @@ export default defineConfig({
       { text: "面试指北", link: "/interview_handbook" },
     ],
     outline: {
-      level: [2, 3],
+      level: 2,
       label: "本页目录", // 中文化标题
     },
     sidebar: generateSidebar([
