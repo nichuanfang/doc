@@ -1,18 +1,23 @@
 // https://vitepress.dev/guide/custom-theme
-import { h } from 'vue'
-import type { Theme } from 'vitepress'
-import DefaultTheme from 'vitepress/theme-without-fonts'
-import './style.css'
-
+import { h } from "vue";
+import type { Theme } from "vitepress";
+import DefaultTheme from "vitepress/theme-without-fonts";
+import OutlineExt from "./OutlineExt.vue";
+import "./style.css";
+import { routeChangeSignal } from "./routeSignal";
 
 export default {
   extends: DefaultTheme,
   Layout: () => {
     return h(DefaultTheme.Layout, null, {
-      // https://vitepress.dev/guide/extending-default-theme#layout-slots
+      "aside-outline-before": () => h(OutlineExt),
     });
   },
-  enhanceApp({ app, router, siteData }) {
-    // ...
-  }
-} satisfies Theme
+  enhanceApp({ router }) {
+    const originalAfter = router.onAfterRouteChange;
+    router.onAfterRouteChange = (to: string) => {
+      originalAfter?.(to);
+      routeChangeSignal.value++;
+    };
+  },
+} satisfies Theme;
