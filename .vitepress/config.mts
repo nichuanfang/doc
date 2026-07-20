@@ -18,7 +18,7 @@ export default defineConfig({
     ],
     outline: {
       level: 2,
-      label: "本页目录",
+      label: "目录",
     },
     sidebar: generateSidebar([
       {
@@ -41,9 +41,9 @@ export default defineConfig({
         useTitleFromFileHeading: true, // 使用 md 文件里的第一个一级标题作为菜单名
         collapsed: true, // 默认是否折叠
         hyphenToSpace: true, // 将连字符转换为空格
-        // sortMenusOrderNumericallyFromLink: true,
-        // removePrefixAfterOrdering: true,
-        // prefixSeparator: ".",
+        sortMenusOrderNumericallyFromLink: true,
+        removePrefixAfterOrdering: true,
+        prefixSeparator: ".",
       },
       // 如果有其他目录，可以继续添加对象
     ]),
