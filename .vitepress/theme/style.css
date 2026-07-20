@@ -23714,3 +23714,9 @@ h1 {
 svg[data-v-cb4e1afe] {
   flex: none
 }
+
+/* 设置字体 */
+:root {
+  --vp-font-family-base: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --vp-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
