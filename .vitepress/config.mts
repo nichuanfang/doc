@@ -15,6 +15,7 @@ export default defineConfig({
       { text: "Home", link: "/" },
       { text: "面试指南", link: "/interview_guide" },
       { text: "面试指北", link: "/interview_handbook" },
+      { text: "面试小抄", link: "/面试小抄" },
     ],
     outline: {
       level: 2,
