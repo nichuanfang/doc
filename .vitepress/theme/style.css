@@ -23720,3 +23720,9 @@ svg[data-v-cb4e1afe] {
   --vp-font-family-base: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --vp-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
+
+.VPDocAsideOutline .content {
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
