@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig } from 'vitepress';
 import { generateSidebar } from 'vitepress-sidebar';
 
 // https://vitepress.dev/reference/site-config
@@ -14,7 +14,6 @@ export default defineConfig({
     nav: [
       { text: "Home", link: "/" },
       { text: "面试指南", link: "/interview_guide" },
-      { text: "面试指北", link: "/interview_handbook" },
       { text: "面试小抄", link: "/面试小抄" },
     ],
     outline: {
@@ -27,18 +26,6 @@ export default defineConfig({
         documentRootPath: "interview_guide", // 你的 markdown 所在目录
         // scanStartPath: '',   // (可选) 如果你想针对 guide 文件夹生成
         resolvePath: "/interview_guide/", // 基础路径前缀
-        useTitleFromFileHeading: true, // 使用 md 文件里的第一个一级标题作为菜单名
-        collapsed: true, // 默认是否折叠
-        hyphenToSpace: true, // 将连字符转换为空格
-        sortMenusOrderNumericallyFromLink: true,
-        removePrefixAfterOrdering: true,
-        prefixSeparator: ".",
-      },
-      {
-        /* 这里的配置针对你的文档根目录 */
-        documentRootPath: "interview_handbook", // 你的 markdown 所在目录
-        // scanStartPath: '',   // (可选) 如果你想针对 guide 文件夹生成
-        resolvePath: "/interview_handbook/", // 基础路径前缀
         useTitleFromFileHeading: true, // 使用 md 文件里的第一个一级标题作为菜单名
         collapsed: true, // 默认是否折叠
         hyphenToSpace: true, // 将连字符转换为空格
