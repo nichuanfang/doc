@@ -7,48 +7,59 @@ let asideEl: HTMLElement | null = null
 let userInteracting = false
 let interactionTimer: ReturnType<typeof setTimeout> | null = null
 
-/** 由代码自身触发 scrollIntoView 时置位，避免把"自动滚动"误判为"用户交互" */
+/** 由代码自身触发滚动时置位，避免把自动滚动误判为用户交互 */
 let isAutoScrolling = false
 let autoScrollingTimer: ReturnType<typeof setTimeout> | null = null
 
 /** 标记用户正在与 outline 交互，暂时关闭自动滚动 */
 function markUserInteraction() {
-  // 如果这次 scroll/wheel 是我们自己代码触发的，不算用户交互
   if (isAutoScrolling) return
 
   userInteracting = true
   if (interactionTimer) clearTimeout(interactionTimer)
   interactionTimer = setTimeout(() => {
     userInteracting = false
-    // 关键修复：解锁后主动补一次纠正，
-    // 避免用户交互窗口期间发生的 active 变化被吞掉，导致停在中途上不去/下不来
+    // 解锁后主动补一次纠正，防止交互窗口内的 active 变化被吞掉
     requestAnimationFrame(scrollActiveIntoView)
   }, 1500)
 }
 
-/** 将当前 active 的 outline 项滚入可视区域（双向对称） */
+/** 将当前 active 的 outline 项滚入可视区域（居中 + 边界钳制，保证可到达顶端/底端） */
 function scrollActiveIntoView() {
   if (userInteracting || !asideEl) return
+
   const active = asideEl.querySelector('.outline-link.active') as HTMLElement | null
   if (!active) return
 
-  const cRect = asideEl.getBoundingClientRect()
-  const aRect = active.getBoundingClientRect()
-  const isAbove = aRect.top < cRect.top + 8
-  const isBelow = aRect.bottom > cRect.bottom - 8
-  if (!isAbove && !isBelow) return
+  const container = asideEl
+  const activeTop = active.offsetTop
+  const activeHeight = active.offsetHeight
+  const containerHeight = container.clientHeight
+  const maxScroll = container.scrollHeight - containerHeight
+
+  // 目标：尽量居中，但钳制在 [0, maxScroll]，确保首项可到顶端、末项可到底端
+  let target = activeTop - containerHeight / 2 + activeHeight / 2
+  target = Math.max(0, Math.min(target, maxScroll))
+
+  // 已在可视区域内则跳过（阈值可按需要微调）
+  if (Math.abs(container.scrollTop - target) < 8) return
 
   isAutoScrolling = true
+  if (autoScrollingTimer) clearTimeout(autoScrollingTimer)
 
   const onScrollEnd = () => {
     isAutoScrolling = false
-    asideEl?.removeEventListener('scrollend', onScrollEnd)
+    container.removeEventListener('scrollend', onScrollEnd)
   }
-  asideEl.addEventListener('scrollend', onScrollEnd, { once: true })
-  // 兜底：不支持 scrollend 的浏览器用超时兜住
-  setTimeout(onScrollEnd, 800)
 
-  active.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+  container.addEventListener('scrollend', onScrollEnd, { once: true })
+  // 兜底：不支持 scrollend 的浏览器用超时
+  autoScrollingTimer = setTimeout(onScrollEnd, 800)
+
+  container.scrollTo({
+    top: target,
+    behavior: 'smooth'
+  })
 }
 
 /** 延迟兜底，用于刷新 / 滚动恢复 / bfcache 场景 */
@@ -63,10 +74,8 @@ onMounted(() => {
     asideEl = document.querySelector('.aside-container') as HTMLElement | null
     if (!asideEl) return
 
-    // 只监听真正代表"用户在手动滚动/触摸/拖拽 outline"的事件，
-    // 去掉 mouseenter（鼠标划过不代表用户想操作它），
-    // 去掉 pointerdown（按下不等于滚动，容易被路过的点击误伤）
-    ;['wheel', 'touchstart', 'scroll'].forEach((evt) => {
+    // 只监听真正代表用户手动操作的事件，去掉 scroll，避免自动滚动产生的误判
+    ;['wheel', 'touchstart'].forEach((evt) => {
       asideEl!.addEventListener(evt, markUserInteraction, { passive: true })
     })
 
@@ -114,7 +123,7 @@ onUnmounted(() => {
   if (interactionTimer) clearTimeout(interactionTimer)
   if (autoScrollingTimer) clearTimeout(autoScrollingTimer)
   if (asideEl) {
-    ;['wheel', 'touchstart', 'scroll'].forEach((evt) => {
+    ;['wheel', 'touchstart'].forEach((evt) => {
       asideEl!.removeEventListener(evt, markUserInteraction)
     })
   }
