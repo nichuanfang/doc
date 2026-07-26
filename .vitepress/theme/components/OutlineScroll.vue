@@ -10,7 +10,11 @@ const RESTORE_DELAY_MS = 120
 const SCROLLEND_FALLBACK_MS = 1500
 /** 判定"已在可视区域内"的滚动阈值(px) */
 const SCROLL_THRESHOLD_PX = 8
-/** MutationObserver 防抖间隔(ms)，防止快速滚动时 smooth 动画堆叠 */
+/**
+ * MutationObserver 防抖间隔(ms)
+ * VitePress 的 useActiveAnchor 底层已用 throttleAndDebounce(100ms) 控制 active 更新频率，
+ * 此处 60ms 防抖进一步确保快速滚动时 smooth 动画不会堆叠。
+ */
 const OBSERVER_DEBOUNCE_MS = 60
 
 let asideEl: HTMLElement | null = null
@@ -30,6 +34,8 @@ let removePrevScrollEndListener: (() => void) | null = null
 /** MutationObserver 防抖定时器 */
 let observerDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
+// ===== 辅助函数 =====
+
 /** 标记用户正在与 outline 交互,暂时关闭自动滚动 */
 function markUserInteraction() {
   if (isAutoScrolling) return
@@ -43,7 +49,15 @@ function markUserInteraction() {
   }, INTERACTION_LOCK_MS)
 }
 
-/** 将当前 active 的 outline 项滚入可视区域(居中 + 边界钳制,保证可到达顶端/底端) */
+/** 判断当前 active 项是否为大纲中的最后一项 */
+function isLastOutlineLink(el: HTMLElement): boolean {
+  const container = el.closest('.aside-container')
+  if (!container) return false
+  const allLinks = container.querySelectorAll('.outline-link')
+  return allLinks.length > 0 && el === allLinks[allLinks.length - 1]
+}
+
+/** 将当前 active 的 outline 项滚入可视区域 */
 function scrollActiveIntoView() {
   if (userInteracting || !asideEl) return
 
@@ -58,8 +72,15 @@ function scrollActiveIntoView() {
   const containerHeight = container.clientHeight
   const maxScroll = container.scrollHeight - containerHeight
 
-  // 目标:尽量居中,但钳制在 [0, maxScroll],确保首项可到顶端、末项可到底端
+  // 计算目标滚动位置:尽量居中
   let target = relativeTop - containerHeight / 2 + activeHeight / 2
+
+  // 特殊处理:如果 active 是最后一项,直接贴底,避免底部留空白
+  if (isLastOutlineLink(active)) {
+    target = maxScroll
+  }
+
+  // 边界钳制,确保首项可到顶端、末项可到底端
   target = Math.max(0, Math.min(target, maxScroll))
 
   // 已在可视区域内则跳过
@@ -107,6 +128,8 @@ function onActiveChanged() {
   }, OBSERVER_DEBOUNCE_MS)
 }
 
+// ===== 生命周期 =====
+
 onMounted(() => {
   nextTick(() => {
     asideEl = document.querySelector('.aside-container') as HTMLElement | null
@@ -115,15 +138,18 @@ onMounted(() => {
     abortController = new AbortController()
     const { signal } = abortController
 
-    // 只监听真正代表用户手动操作的事件,去掉 scroll,避免自动滚动产生的误判
-    // wheel -> 滚轮操作, touchstart -> 触屏操作
-    // mousedown / pointerdown -> 拖动滚动条操作（覆盖前两者遗漏的手动交互）
+    // 监听用户手动操作事件,去掉 scroll,避免自动滚动产生的误判
+    // wheel → 滚轮, touchstart → 触屏滑动
+    // mousedown / pointerdown → 拖动滚动条(修复之前遗漏的交互方式)
     ;['wheel', 'touchstart', 'mousedown', 'pointerdown'].forEach((evt) => {
       asideEl!.addEventListener(evt, markUserInteraction, { passive: true, signal })
     })
 
-    // 监听 active 类变化(依赖 VitePress 默认主题内部结构:
-    // .aside-container / .outline-link / .active,升级 VitePress 时需重新核对)
+    // 监听 active 类变化
+    // 依赖 VitePress 默认主题内部结构:
+    //   .aside-container / .outline-link / .active
+    // VitePress useActiveAnchor 通过 throttleAndDebounce(100ms) 控制 class 切换频率,
+    // 此处 MutationObserver 配合防抖进一步优化快速滚动时的体验。
     observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
         const target = m.target as HTMLElement
@@ -151,7 +177,7 @@ onMounted(() => {
     // 浏览器滚动恢复后通常会触发一次 scroll,再补一次
     window.addEventListener('scroll', () => restore(), { once: true, passive: true, signal })
 
-    // bfcache(前进 / 后退)恢复
+    // bfcache(前进/后退)恢复
     window.addEventListener('pageshow', onPageShow, { signal })
   })
 })
