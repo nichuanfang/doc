@@ -17,7 +17,7 @@ export default defineConfig({
       { text: "面试小抄", link: "/面试小抄" },
     ],
     outline: {
-      level: 2,
+      level: [2,3],
       label: "目录",
     },
     sidebar: generateSidebar([
