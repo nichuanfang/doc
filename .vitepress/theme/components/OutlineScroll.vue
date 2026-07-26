@@ -7,9 +7,11 @@ const INTERACTION_LOCK_MS = 1500
 /** 页面刷新/恢复后延迟触发定位的时长(ms) */
 const RESTORE_DELAY_MS = 120
 /** scrollend 不可用时的兜底超时(ms) */
-const SCROLLEND_FALLBACK_MS = 800
+const SCROLLEND_FALLBACK_MS = 1500
 /** 判定"已在可视区域内"的滚动阈值(px) */
 const SCROLL_THRESHOLD_PX = 8
+/** MutationObserver 防抖间隔(ms)，防止快速滚动时 smooth 动画堆叠 */
+const OBSERVER_DEBOUNCE_MS = 60
 
 let asideEl: HTMLElement | null = null
 let observer: MutationObserver | null = null
@@ -24,6 +26,9 @@ let isAutoScrolling = false
 let autoScrollingTimer: ReturnType<typeof setTimeout> | null = null
 /** 上一次滚动动画的 scrollend 监听器移除函数,防止多次触发时监听器堆叠 */
 let removePrevScrollEndListener: (() => void) | null = null
+
+/** MutationObserver 防抖定时器 */
+let observerDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
 /** 标记用户正在与 outline 交互,暂时关闭自动滚动 */
 function markUserInteraction() {
@@ -94,6 +99,14 @@ const onPageShow = (e: PageTransitionEvent) => {
   if (e.persisted) restore()
 }
 
+/** outline-link.active 变化的防抖处理 */
+function onActiveChanged() {
+  if (observerDebounceTimer) clearTimeout(observerDebounceTimer)
+  observerDebounceTimer = setTimeout(() => {
+    requestAnimationFrame(scrollActiveIntoView)
+  }, OBSERVER_DEBOUNCE_MS)
+}
+
 onMounted(() => {
   nextTick(() => {
     asideEl = document.querySelector('.aside-container') as HTMLElement | null
@@ -103,7 +116,9 @@ onMounted(() => {
     const { signal } = abortController
 
     // 只监听真正代表用户手动操作的事件,去掉 scroll,避免自动滚动产生的误判
-    ;['wheel', 'touchstart'].forEach((evt) => {
+    // wheel -> 滚轮操作, touchstart -> 触屏操作
+    // mousedown / pointerdown -> 拖动滚动条操作（覆盖前两者遗漏的手动交互）
+    ;['wheel', 'touchstart', 'mousedown', 'pointerdown'].forEach((evt) => {
       asideEl!.addEventListener(evt, markUserInteraction, { passive: true, signal })
     })
 
@@ -118,7 +133,7 @@ onMounted(() => {
           target.classList.contains('outline-link') &&
           target.classList.contains('active')
         ) {
-          requestAnimationFrame(scrollActiveIntoView)
+          onActiveChanged()
           break
         }
       }
@@ -145,12 +160,13 @@ onUnmounted(() => {
   observer?.disconnect()
   observer = null
 
-  // 一次性移除本组件添加的所有事件监听器(wheel/touchstart/scroll/pageshow)
+  // 一次性移除本组件添加的所有事件监听器
   abortController?.abort()
   abortController = null
 
   if (interactionTimer) clearTimeout(interactionTimer)
   if (autoScrollingTimer) clearTimeout(autoScrollingTimer)
+  if (observerDebounceTimer) clearTimeout(observerDebounceTimer)
   removePrevScrollEndListener?.()
   removePrevScrollEndListener = null
 
