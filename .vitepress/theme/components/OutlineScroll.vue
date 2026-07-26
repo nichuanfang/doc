@@ -32,13 +32,15 @@ function scrollActiveIntoView() {
   if (!active) return
 
   const container = asideEl
-  const activeTop = active.offsetTop
-  const activeHeight = active.offsetHeight
+  const cRect = container.getBoundingClientRect()
+  const aRect = active.getBoundingClientRect()
+  const relativeTop = aRect.top - cRect.top + container.scrollTop
+  const activeHeight = aRect.height
   const containerHeight = container.clientHeight
   const maxScroll = container.scrollHeight - containerHeight
 
   // 目标：尽量居中，但钳制在 [0, maxScroll]，确保首项可到顶端、末项可到底端
-  let target = activeTop - containerHeight / 2 + activeHeight / 2
+  let target = relativeTop - containerHeight / 2 + activeHeight / 2
   target = Math.max(0, Math.min(target, maxScroll))
 
   // 已在可视区域内则跳过（阈值可按需要微调）
@@ -67,6 +69,10 @@ function restore() {
   setTimeout(() => {
     requestAnimationFrame(scrollActiveIntoView)
   }, 120)
+}
+
+const onPageShow = (e: PageTransitionEvent) => {
+  if (e.persisted) restore()
 }
 
 onMounted(() => {
@@ -112,9 +118,7 @@ onMounted(() => {
     )
 
     // bfcache（前进 / 后退）恢复
-    window.addEventListener('pageshow', (e) => {
-      if (e.persisted) restore()
-    })
+    window.addEventListener('pageshow', onPageShow)
   })
 })
 
@@ -127,6 +131,7 @@ onUnmounted(() => {
       asideEl!.removeEventListener(evt, markUserInteraction)
     })
   }
+  window.removeEventListener('pageshow', onPageShow)
 })
 </script>
 
