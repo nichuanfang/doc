@@ -3,7 +3,7 @@ import { onMounted, onUnmounted, nextTick } from 'vue'
 
 // ===== 可调常量 =====
 /** 用户交互后锁定自动滚动的时长(ms) */
-const INTERACTION_LOCK_MS = 1500
+const INTERACTION_LOCK_MS = 1000
 /** 判定"已在可视区域内"的滚动阈值(px) */
 const SCROLL_THRESHOLD_PX = 8
 
@@ -26,8 +26,6 @@ function markUserInteraction() {
   if (interactionTimer) clearTimeout(interactionTimer)
   interactionTimer = setTimeout(() => {
     userInteracting = false
-    // 解锁后主动补一次纠正,防止交互窗口内的 active 变化被吞掉
-    requestAnimationFrame(scrollActiveIntoView)
   }, INTERACTION_LOCK_MS)
 }
 
