@@ -4,18 +4,10 @@ import { onMounted, onUnmounted, nextTick } from 'vue'
 // ===== 可调常量 =====
 /** 用户交互后锁定自动滚动的时长(ms) */
 const INTERACTION_LOCK_MS = 1500
-/** 页面刷新/恢复后延迟触发定位的时长(ms) */
-const RESTORE_DELAY_MS = 120
 /** scrollend 不可用时的兜底超时(ms) */
-const SCROLLEND_FALLBACK_MS = 1500
+const SCROLLEND_FALLBACK_MS = 400
 /** 判定"已在可视区域内"的滚动阈值(px) */
 const SCROLL_THRESHOLD_PX = 8
-/**
- * MutationObserver 防抖间隔(ms)
- * VitePress 的 useActiveAnchor 底层已用 throttleAndDebounce(100ms) 控制 active 更新频率，
- * 此处 60ms 防抖进一步确保快速滚动时 smooth 动画不会堆叠。
- */
-const OBSERVER_DEBOUNCE_MS = 60
 
 let asideEl: HTMLElement | null = null
 let observer: MutationObserver | null = null
@@ -31,14 +23,10 @@ let autoScrollingTimer: ReturnType<typeof setTimeout> | null = null
 /** 上一次滚动动画的 scrollend 监听器移除函数,防止多次触发时监听器堆叠 */
 let removePrevScrollEndListener: (() => void) | null = null
 
-/** MutationObserver 防抖定时器 */
-let observerDebounceTimer: ReturnType<typeof setTimeout> | null = null
-
 // ===== 辅助函数 =====
 
 /** 标记用户正在与 outline 交互,暂时关闭自动滚动 */
 function markUserInteraction() {
-  if (isAutoScrolling) return
 
   userInteracting = true
   if (interactionTimer) clearTimeout(interactionTimer)
@@ -50,9 +38,7 @@ function markUserInteraction() {
 }
 
 /** 判断当前 active 项是否为大纲中的最后一项 */
-function isLastOutlineLink(el: HTMLElement): boolean {
-  const container = el.closest('.aside-container')
-  if (!container) return false
+function isLastOutlineLink(el: HTMLElement, container: HTMLElement): boolean {
   const allLinks = container.querySelectorAll('.outline-link')
   return allLinks.length > 0 && el === allLinks[allLinks.length - 1]
 }
@@ -70,13 +56,13 @@ function scrollActiveIntoView() {
   const relativeTop = aRect.top - cRect.top + container.scrollTop
   const activeHeight = aRect.height
   const containerHeight = container.clientHeight
-  const maxScroll = container.scrollHeight - containerHeight
+  const maxScroll = Math.max(0, container.scrollHeight - containerHeight)
 
   // 计算目标滚动位置:尽量居中
   let target = relativeTop - containerHeight / 2 + activeHeight / 2
 
   // 特殊处理:如果 active 是最后一项,直接贴底,避免底部留空白
-  if (isLastOutlineLink(active)) {
+  if (isLastOutlineLink(active, container)) {
     target = maxScroll
   }
 
@@ -105,15 +91,13 @@ function scrollActiveIntoView() {
 
   container.scrollTo({
     top: target,
-    behavior: 'smooth'
+    behavior: 'auto'
   })
 }
 
 /** 延迟兜底,用于刷新 / 滚动恢复 / bfcache 场景 */
 function restore() {
-  setTimeout(() => {
-    requestAnimationFrame(scrollActiveIntoView)
-  }, RESTORE_DELAY_MS)
+  requestAnimationFrame(scrollActiveIntoView)
 }
 
 const onPageShow = (e: PageTransitionEvent) => {
@@ -122,10 +106,7 @@ const onPageShow = (e: PageTransitionEvent) => {
 
 /** outline-link.active 变化的防抖处理 */
 function onActiveChanged() {
-  if (observerDebounceTimer) clearTimeout(observerDebounceTimer)
-  observerDebounceTimer = setTimeout(() => {
-    requestAnimationFrame(scrollActiveIntoView)
-  }, OBSERVER_DEBOUNCE_MS)
+  requestAnimationFrame(scrollActiveIntoView)
 }
 
 // ===== 生命周期 =====
@@ -192,7 +173,6 @@ onUnmounted(() => {
 
   if (interactionTimer) clearTimeout(interactionTimer)
   if (autoScrollingTimer) clearTimeout(autoScrollingTimer)
-  if (observerDebounceTimer) clearTimeout(observerDebounceTimer)
   removePrevScrollEndListener?.()
   removePrevScrollEndListener = null
 
