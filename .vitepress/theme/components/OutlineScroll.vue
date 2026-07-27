@@ -91,7 +91,7 @@ function scrollActiveIntoView() {
 
   container.scrollTo({
     top: target,
-    behavior: 'auto'
+    behavior: 'smooth'
   })
 }
 
