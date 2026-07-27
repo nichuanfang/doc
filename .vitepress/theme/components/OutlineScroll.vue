@@ -3,7 +3,7 @@ import { onMounted, onUnmounted, nextTick } from 'vue'
 
 // ===== 可调常量 =====
 /** 用户交互后锁定自动滚动的时长(ms) */
-const INTERACTION_LOCK_MS = 1500
+const INTERACTION_LOCK_MS = 1000
 /** 判定"已在可视区域内"的滚动阈值(px) */
 const SCROLL_THRESHOLD_PX = 8
 
