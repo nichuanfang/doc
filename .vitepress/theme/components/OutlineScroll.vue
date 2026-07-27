@@ -18,14 +18,16 @@ let userInteracting = false
 let interactionTimer: ReturnType<typeof setTimeout> | null = null
 
 let autoScrollingTimer: ReturnType<typeof setTimeout> | null = null
-/** 上一次滚动动画的 scrollend 监听器移除函数,防止多次触发时监听器堆叠 */
+/** 上一次滚动的 scrollend 监听器移除函数,防止多次触发时监听器堆叠 */
 let removePrevScrollEndListener: (() => void) | null = null
+
+/** 防止 nextTick 回调在组件卸载后仍执行 */
+let isMounted = false
 
 // ===== 辅助函数 =====
 
 /** 标记用户正在与 outline 交互,暂时关闭自动滚动 */
 function markUserInteraction() {
-
   userInteracting = true
   if (interactionTimer) clearTimeout(interactionTimer)
   interactionTimer = setTimeout(() => {
@@ -109,24 +111,26 @@ function onActiveChanged() {
 // ===== 生命周期 =====
 
 onMounted(() => {
+  isMounted = true
+
   nextTick(() => {
+    if (!isMounted) return
+
     asideEl = document.querySelector('.aside-container') as HTMLElement | null
     if (!asideEl) return
 
     abortController = new AbortController()
     const { signal } = abortController
 
-    // 监听用户手动操作事件,去掉 scroll,避免自动滚动产生的误判
-    // wheel → 滚轮, touchstart → 触屏滑动
-    // mousedown / pointerdown → 拖动滚动条(修复之前遗漏的交互方式)
-    ;['wheel', 'touchstart', 'mousedown', 'pointerdown'].forEach((evt) => {
-      asideEl!.addEventListener(evt, markUserInteraction, { passive: true, signal })
-    })
+      // 监听用户手动操作事件
+      // wheel → 滚轮，touchstart → 触屏滑动，keydown → 键盘滚动
+      ;['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach((evt) => {
+        asideEl!.addEventListener(evt, markUserInteraction, { passive: true, signal })
+      })
 
     // 监听 active 类变化
     // 依赖 VitePress 默认主题内部结构:
     //   .aside-container / .outline-link / .active
-    // VitePress useActiveAnchor 通过 throttleAndDebounce(100ms) 控制 class 切换频率,
     // 此处 MutationObserver 配合防抖进一步优化快速滚动时的体验。
     observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
@@ -161,6 +165,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  isMounted = false
+
   observer?.disconnect()
   observer = null
 
