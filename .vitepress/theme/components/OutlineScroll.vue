@@ -4,8 +4,6 @@ import { onMounted, onUnmounted, nextTick } from 'vue'
 // ===== 可调常量 =====
 /** 用户交互后锁定自动滚动的时长(ms) */
 const INTERACTION_LOCK_MS = 1500
-/** scrollend 不可用时的兜底超时(ms) */
-const SCROLLEND_FALLBACK_MS = 400
 /** 判定"已在可视区域内"的滚动阈值(px) */
 const SCROLL_THRESHOLD_PX = 8
 
@@ -16,10 +14,6 @@ let abortController: AbortController | null = null
 
 let userInteracting = false
 let interactionTimer: ReturnType<typeof setTimeout> | null = null
-
-let autoScrollingTimer: ReturnType<typeof setTimeout> | null = null
-/** 上一次滚动的 scrollend 监听器移除函数,防止多次触发时监听器堆叠 */
-let removePrevScrollEndListener: (() => void) | null = null
 
 /** 防止 nextTick 回调在组件卸载后仍执行 */
 let isMounted = false
@@ -72,25 +66,10 @@ function scrollActiveIntoView() {
   // 已在可视区域内则跳过
   if (Math.abs(container.scrollTop - target) < SCROLL_THRESHOLD_PX) return
 
-  // 避免上一次滚动的 scrollend 监听器堆叠
-  removePrevScrollEndListener?.()
-
-  if (autoScrollingTimer) clearTimeout(autoScrollingTimer)
-
-  const onScrollEnd = () => {
-    container.removeEventListener('scrollend', onScrollEnd)
-    removePrevScrollEndListener = null
-    if (autoScrollingTimer) clearTimeout(autoScrollingTimer)
-  }
-  removePrevScrollEndListener = () => container.removeEventListener('scrollend', onScrollEnd)
-
-  container.addEventListener('scrollend', onScrollEnd, { once: true })
-  // 兜底:不支持 scrollend 的浏览器用超时
-  autoScrollingTimer = setTimeout(onScrollEnd, SCROLLEND_FALLBACK_MS)
-
+  // auto 为同步瞬间完成,无需 scrollend 监听或超时兜底
   container.scrollTo({
     top: target,
-    behavior: 'smooth'
+    behavior: 'auto'
   })
 }
 
@@ -175,9 +154,7 @@ onUnmounted(() => {
   abortController = null
 
   if (interactionTimer) clearTimeout(interactionTimer)
-  if (autoScrollingTimer) clearTimeout(autoScrollingTimer)
-  removePrevScrollEndListener?.()
-  removePrevScrollEndListener = null
+  interactionTimer = null
 
   asideEl = null
 })
