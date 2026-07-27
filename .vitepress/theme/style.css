@@ -23720,15 +23720,3 @@ svg[data-v-cb4e1afe] {
   --vp-font-family-base: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --vp-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
-
-/* Make the outline container scroll smoother and keep a little breathing room */
-.aside-container {
-  scroll-behavior: smooth;
-  /* optional: slightly taller gradient so the last items are easier to reach */
-  /* the official curtain is already present */
-}
-
-/* Ensure the active item is never clipped by the bottom curtain */
-.VPDocAsideOutline .outline-link.active {
-  scroll-margin-block: 12px;
-}

@@ -15,6 +15,5 @@ export default {
   },
   enhanceApp({ app, router, siteData }) {
     // ...
-    app.component('OutlineScroll', OutlineScroll)
   },
 } satisfies Theme;
