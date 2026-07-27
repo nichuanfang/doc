@@ -1,26 +1,27 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, nextTick } from 'vue'
+import { onMounted, onUnmounted, onUpdated, nextTick } from 'vue'
+import { useLayout } from 'vitepress/theme'
 
 // ===== 可调常量 =====
-/** 用户交互后锁定自动滚动的时长(ms) */
 const INTERACTION_LOCK_MS = 1000
-/** 判定"已在可视区域内"的滚动阈值(px) */
-const SCROLL_THRESHOLD_PX = 8
+const SCROLL_THRESHOLD_PX = 30
+const EDGE_PADDING_PX = 16
+const OBSERVER_DEBOUNCE_MS = 30
+
+const { hasAside } = useLayout() 
 
 let asideEl: HTMLElement | null = null
 let observer: MutationObserver | null = null
-// 统一管理本组件添加的所有事件监听器,unmount 时一键清理
 let abortController: AbortController | null = null
 
 let userInteracting = false
 let interactionTimer: ReturnType<typeof setTimeout> | null = null
+let observerTimer: ReturnType<typeof setTimeout> | null = null
 
-/** 防止 nextTick 回调在组件卸载后仍执行 */
 let isMounted = false
 
 // ===== 辅助函数 =====
 
-/** 标记用户正在与 outline 交互,暂时关闭自动滚动 */
 function markUserInteraction() {
   userInteracting = true
   if (interactionTimer) clearTimeout(interactionTimer)
@@ -29,136 +30,166 @@ function markUserInteraction() {
   }, INTERACTION_LOCK_MS)
 }
 
-/** 判断当前 active 项是否为大纲中的最后一项 */
 function isLastOutlineLink(el: HTMLElement, container: HTMLElement): boolean {
   const allLinks = container.querySelectorAll('.outline-link')
   return allLinks.length > 0 && el === allLinks[allLinks.length - 1]
 }
 
-/** 将当前 active 的 outline 项滚入可视区域 */
+function isFirstOutlineLink(el: HTMLElement, container: HTMLElement): boolean {
+  const allLinks = container.querySelectorAll('.outline-link')
+  return allLinks.length > 0 && el === allLinks[0]
+}
+
+function scrollToTop() {
+  if (!asideEl || userInteracting) return
+  if (Math.abs(asideEl.scrollTop) < SCROLL_THRESHOLD_PX) return
+  asideEl.scrollTo({ top: 0, behavior: 'auto' })
+}
+
 function scrollActiveIntoView() {
-  if (userInteracting || !asideEl) return
+  if (!hasAside.value || userInteracting || !asideEl) return
 
   const active = asideEl.querySelector('.outline-link.active') as HTMLElement | null
-  if (!active) return
+
+  // 页面在顶部时 VitePress 会移除 active → 滚动 outline 到顶部
+  if (!active) {
+    scrollToTop()
+    return
+  }
 
   const container = asideEl
   const cRect = container.getBoundingClientRect()
   const aRect = active.getBoundingClientRect()
-  const relativeTop = aRect.top - cRect.top + container.scrollTop
-  const activeHeight = aRect.height
   const containerHeight = container.clientHeight
   const maxScroll = Math.max(0, container.scrollHeight - containerHeight)
 
-  // 计算目标滚动位置:尽量居中
-  let target = relativeTop - containerHeight / 2 + activeHeight / 2
+  const relativeTop = aRect.top - cRect.top
+  const relativeBottom = aRect.bottom - cRect.top
+  const isAbove = relativeTop < 0
+  const isBelow = relativeBottom > containerHeight
 
-  // 特殊处理:如果 active 是最后一项,直接贴底,避免底部留空白
-  if (isLastOutlineLink(active, container)) {
-    target = maxScroll
+  if (!isAbove && !isBelow) return
+
+  let target = container.scrollTop
+  if (isAbove) {
+    target = container.scrollTop + relativeTop - EDGE_PADDING_PX
+  } else {
+    target = container.scrollTop + relativeBottom - containerHeight + EDGE_PADDING_PX
   }
 
-  // 边界钳制,确保首项可到顶端、末项可到底端
-  target = Math.max(0, Math.min(target, maxScroll))
+  if (isFirstOutlineLink(active, container)) target = 0
+  if (isLastOutlineLink(active, container)) target = maxScroll
 
-  // 已在可视区域内则跳过
+  target = Math.max(0, Math.min(target, maxScroll))
   if (Math.abs(container.scrollTop - target) < SCROLL_THRESHOLD_PX) return
 
-  // auto 为同步瞬间完成,无需 scrollend 监听或超时兜底
-  container.scrollTo({
-    top: target,
-    behavior: 'auto'
-  })
+  container.scrollTo({ top: target, behavior: 'auto' })
 }
 
-/** 延迟兜底,用于刷新 / 滚动恢复 / bfcache 场景 */
 function restore() {
   requestAnimationFrame(scrollActiveIntoView)
 }
 
-const onPageShow = (e: PageTransitionEvent) => {
-  if (e.persisted) restore()
-}
-
-/** outline-link.active 变化的防抖处理 */
 function onActiveChanged() {
-  requestAnimationFrame(scrollActiveIntoView)
+  if (observerTimer) clearTimeout(observerTimer)
+  observerTimer = setTimeout(() => {
+    if (!isMounted) return
+    requestAnimationFrame(scrollActiveIntoView)
+  }, OBSERVER_DEBOUNCE_MS)
 }
 
-// ===== 生命周期 =====
-
-onMounted(() => {
-  isMounted = true
-
-  nextTick(() => {
-    if (!isMounted) return
-
-    asideEl = document.querySelector('.aside-container') as HTMLElement | null
-    if (!asideEl) return
-
-    abortController = new AbortController()
-    const { signal } = abortController
-
-      // 监听用户手动操作事件
-      // wheel → 滚轮，touchstart → 触屏滑动，keydown → 键盘滚动
-      ;['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach((evt) => {
-        asideEl!.addEventListener(evt, markUserInteraction, { passive: true, signal })
-      })
-
-    // 监听 active 类变化
-    // 依赖 VitePress 默认主题内部结构:
-    //   .aside-container / .outline-link / .active
-    // 此处 MutationObserver 配合防抖进一步优化快速滚动时的体验。
+function reconnectObserver() {
+  const newAside = document.querySelector('.aside-container') as HTMLElement | null
+  if (newAside && newAside !== asideEl) {
+    asideEl = newAside
+    observer?.disconnect()
     observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
         const target = m.target as HTMLElement
         if (
           m.type === 'attributes' &&
           m.attributeName === 'class' &&
-          target.classList.contains('outline-link') &&
-          target.classList.contains('active')
+          target.classList.contains('outline-link')
         ) {
           onActiveChanged()
           break
         }
       }
     })
-
     observer.observe(asideEl, {
       attributes: true,
       attributeFilter: ['class'],
       subtree: true
     })
-
-    // 初次定位
     restore()
+  }
+}
 
-    // 浏览器滚动恢复后通常会触发一次 scroll,再补一次
-    window.addEventListener('scroll', () => restore(), { once: true, passive: true, signal })
+// ===== 生命周期 =====
 
-    // bfcache(前进/后退)恢复
-    window.addEventListener('pageshow', onPageShow, { signal })
+onMounted(() => {
+  isMounted = true
+  nextTick(setup)
+})
+
+onUpdated(() => {
+  nextTick(() => {
+    if (isMounted) reconnectObserver()
   })
 })
 
+function setup() {
+  if (!isMounted) return
+
+  asideEl = document.querySelector('.aside-container') as HTMLElement | null
+  if (!asideEl) return
+
+  abortController = new AbortController()
+  const { signal } = abortController
+
+    ;['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach((evt) => {
+      asideEl!.addEventListener(evt, markUserInteraction, { passive: true, signal })
+    })
+
+  observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      const target = m.target as HTMLElement
+      if (
+        m.type === 'attributes' &&
+        m.attributeName === 'class' &&
+        target.classList.contains('outline-link')
+      ) {
+        onActiveChanged()
+        break
+      }
+    }
+  })
+
+  observer.observe(asideEl, {
+    attributes: true,
+    attributeFilter: ['class'],
+    subtree: true
+  })
+
+  restore()
+
+  // bfcache
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) restore()
+  }, { signal })
+}
+
 onUnmounted(() => {
   isMounted = false
-
   observer?.disconnect()
   observer = null
-
-  // 一次性移除本组件添加的所有事件监听器
   abortController?.abort()
   abortController = null
-
   if (interactionTimer) clearTimeout(interactionTimer)
-  interactionTimer = null
-
+  if (observerTimer) clearTimeout(observerTimer)
   asideEl = null
 })
 </script>
 
 <template>
-  <!-- 仅用于挂载逻辑,不渲染可见内容 -->
-  <span style="display: none" aria-hidden="true" />
 </template>
