@@ -2,7 +2,6 @@
 import { h } from "vue";
 import type { Theme } from "vitepress";
 import DefaultTheme from "vitepress/theme-without-fonts";
-import OutlineScroll from './components/OutlineScroll.vue'
 import "./style.css";
 
 export default {
@@ -10,7 +9,6 @@ export default {
   Layout: () => {
     return h(DefaultTheme.Layout, null, {
       // https://vitepress.dev/guide/extending-default-theme#layout-slots
-      'aside-outline-before': () => h(OutlineScroll)
     });
   },
   enhanceApp({ app, router, siteData }) {
