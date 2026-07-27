@@ -17,8 +17,6 @@ let abortController: AbortController | null = null
 let userInteracting = false
 let interactionTimer: ReturnType<typeof setTimeout> | null = null
 
-/** 由代码自身触发滚动时置位,避免把自动滚动误判为用户交互 */
-let isAutoScrolling = false
 let autoScrollingTimer: ReturnType<typeof setTimeout> | null = null
 /** 上一次滚动动画的 scrollend 监听器移除函数,防止多次触发时监听器堆叠 */
 let removePrevScrollEndListener: (() => void) | null = null
@@ -75,11 +73,9 @@ function scrollActiveIntoView() {
   // 避免上一次滚动的 scrollend 监听器堆叠
   removePrevScrollEndListener?.()
 
-  isAutoScrolling = true
   if (autoScrollingTimer) clearTimeout(autoScrollingTimer)
 
   const onScrollEnd = () => {
-    isAutoScrolling = false
     container.removeEventListener('scrollend', onScrollEnd)
     removePrevScrollEndListener = null
   }
