@@ -78,6 +78,7 @@ function scrollActiveIntoView() {
   const onScrollEnd = () => {
     container.removeEventListener('scrollend', onScrollEnd)
     removePrevScrollEndListener = null
+    if (autoScrollingTimer) clearTimeout(autoScrollingTimer)
   }
   removePrevScrollEndListener = () => container.removeEventListener('scrollend', onScrollEnd)
 
