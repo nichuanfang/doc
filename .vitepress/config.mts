@@ -17,6 +17,7 @@ export default defineConfig({
       { text: "面试小抄", link: "/面试小抄" },
       { text: "面试冲刺", link: "/面试冲刺" },
       { text: "flowable知识点", link: "/flowable知识点" },
+      { text: "xxl-job", link: "/xxl-job" },
     ],
     outline: {
       level: 2,
