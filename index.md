@@ -5,7 +5,7 @@ layout: home
 hero:
   name: "MyDoc"
 #  text: ""
-  tagline: 个人文档平台
+  tagline: 专注于后端开发、高并发架构与面试复盘的知识库
   image:
     src: /logo.svg
     alt: MyDoc Logo
